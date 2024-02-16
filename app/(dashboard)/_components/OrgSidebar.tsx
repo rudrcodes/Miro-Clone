@@ -5,6 +5,11 @@ import Image from 'next/image'
 import { Poppins } from 'next/font/google'
 import { cn } from "@/lib/utils"
 import { OrganizationSwitcher } from '@clerk/nextjs'
+import { Button } from '@/components/ui/button'
+import { LayoutDashboard, Star } from 'lucide-react'
+import { useSearchParams } from 'next/navigation'
+
+
 
 const font = Poppins({
     subsets: ["latin"],
@@ -12,6 +17,9 @@ const font = Poppins({
 })
 
 const OrgSidebar = () => {
+    const searchParams = useSearchParams();
+    const favorites = searchParams.get("favorites")
+    console.log("favorites :", favorites)
     return (
         <div className='hidden lg:flex flex-col space-y-6 w-[206px] pl-5 pt-5 '>
             <Link href="/">
@@ -40,15 +48,44 @@ const OrgSidebar = () => {
                             width: "100%"
                         },
                         organizationSwitcherTrigger: {
-                            paddibg: "6px",
+                            padding: "6px",
                             width: "100%",
-                            borderRadius:"8px",
-                            border:"1px solid black"
+                            borderRadius: "8px",
+                            border: "1px solid #cbccd1",
+                            justifyContent: "space-between",
+                            backgroundColor: "white"
                         }
                     },
 
                 }}
             />
+
+            <div className='space-y-1'>
+                <Button asChild
+                    size="lg"
+                    className='font-normal justify-start px-2 w-full'
+                    variant={favorites ? "ghost" : "default"}
+
+                >
+                    <Link href="/">
+                        <LayoutDashboard className='h-4 w-4 mr-2' />
+                        Team boards
+                    </Link>
+                </Button>
+                <Button asChild
+                    size="lg"
+                    className='font-normal justify-start px-2 w-full'
+                    variant={favorites ? "default" : "ghost"}
+                >
+                    <Link href={{
+                        pathname: "/",
+                        query: { favorites: true }
+                    }}>
+                        <Star className='h-4 w-4 mr-2' />
+                        Favorite boards
+                    </Link>
+                </Button>
+            </div>
         </div>
     )
 }
