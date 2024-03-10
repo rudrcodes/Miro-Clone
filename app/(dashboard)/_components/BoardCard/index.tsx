@@ -8,6 +8,12 @@ import { useAuth } from "@clerk/nextjs"
 import { Footer } from "./Footer"
 
 import { Skeleton } from "@/components/ui/skeleton"
+import { Actions } from "@/components/actions"
+import { MoreHorizontal } from "lucide-react"
+import { Id } from "@/convex/_generated/dataModel"
+import { useMutation } from "convex/react"
+import { api } from "@/convex/_generated/api"
+import { toast } from "sonner"
 
 interface BoardCardProps {
     id: string
@@ -36,6 +42,21 @@ export const BoardCard = ({
         addSuffix: true
     })
 
+    const favorite = useMutation(api.board.favorite);
+    const unFavorite = useMutation(api.board.unFavorite);
+
+
+    const toggleFav = () => {
+        if (isFavorite) {
+            unFavorite({ id: id as Id<"boards"> }).then(() => toast.success("Board unfavorited"))
+                .catch(() => toast.error("Failed to unfavorite board"))
+        }
+        else {
+            favorite({ id: id as Id<"boards">, orgId }).then(() => toast.success("Board favorited")).catch(() => toast.error("Failed to favorite board"))
+        }
+    }
+
+
 
     return (
         <Link href={`board/${id}`}>
@@ -48,13 +69,26 @@ export const BoardCard = ({
                         className="object-fit"
                     />
                     <Overlay />
+                    <Actions
+                        id={id as Id<"boards">}
+                        title={title}
+                        side="right"
+                    >
+                        <button
+                            className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity px-3 py-2 outline-none"
+                        >
+                            <MoreHorizontal
+                                className="text-white opacity-75 hover:opacity-100 transition-opacity" />
+                        </button>
+
+                    </Actions>
                 </div>
                 <Footer
                     isFavorite={isFavorite}
                     title={title}
                     authorLabel={authorLabel}
                     createdAtLabel={createdAtLabel}
-                    onClick={() => { }}
+                    onClick={toggleFav}
                     disabled={false}
 
                 />
@@ -67,7 +101,7 @@ export const BoardCard = ({
 BoardCard.Skeleton = function BoardCardSkeleton() {
     return (
         <div className="aspect-[100/127] rounded-lg overflow-hidden ">
-            <Skeleton className="h-full w-full"/>
+            <Skeleton className="h-full w-full" />
         </div>
     )
 }

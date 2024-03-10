@@ -1,5 +1,5 @@
 // mutations here
-// API end point
+// API end point , These are the API endpoints for creating a board, deleting a board and updating name a board
 
 // Define a mutation in this Convex app's public API.
 // This function will be allowed to modify your Convex database and will be accessible from the client.
@@ -60,4 +60,126 @@ export const create = mutation({
 
     }
 
+})
+
+export const remove = mutation({
+    args: { id: v.id("boards"), },
+    handler: async (ctx, args) => {
+        const identity = await ctx.auth.getUserIdentity();
+        console.log("identity from board :", identity);
+        if (!identity) {
+            // Basically if the user is authenticated then only allow them to call the mutation (API end point)
+            throw new Error("Unauthorised")
+        }
+        // TODO : Later check to delete the favorite relation as well
+        await ctx.db.delete(args.id)
+
+    }
+})
+
+export const update = mutation({
+    args: { id: v.id("boards"), title: v.string() },
+    handler: async (ctx, args) => {
+        const identity = await ctx.auth.getUserIdentity();
+        console.log("identity from board :", identity);
+        if (!identity) {
+            // Basically if the user is authenticated then only allow them to call the mutation (API end point)
+            throw new Error("Unauthorised")
+        }
+        // TODO : Later check to delete the favorite relation as well
+        const title = args.title.trim()
+        if (!title) {
+            throw new Error("Title is required");
+        }
+
+        if (title.length > 60) {
+            throw new Error("Title cannot be longer than 60 characters");
+        }
+        const board = await ctx.db.patch(args.id, {
+            title: args.title
+        })
+
+        // Why are we returning the updated board here .. maybe to debug ??
+        return board;
+    }
+})
+
+
+export const favorite = mutation({
+    args: { id: v.id("boards"), orgId: v.string() },
+    handler: async (ctx, args) => {
+
+        const identity = await ctx.auth.getUserIdentity()
+        if (!identity) {
+            throw new Error("Unauthorised")
+        }
+        // get : Fetch a single document from the database by its values.GenericId .
+
+        const board = await ctx.db.get(args.id);
+
+        if (!board) {
+            throw new Error("Board not found")
+        }
+
+        const userId = identity.subject
+
+        const existingFavorites = await ctx.db.query("userFavorites").
+            withIndex("by_user_board_org", (q) =>
+                q
+                    .eq("userId", userId)
+                    .eq("boardId", board._id)
+                    .eq("orgId", args.orgId)
+            ).unique()
+
+        if (existingFavorites) {
+            throw new Error("Board already favorited")
+        }
+
+        // If the board is not favorited , then favorite it
+        await ctx.db.insert("userFavorites", {
+            userId,
+            boardId: board._id,
+            orgId: args.orgId
+        })
+
+        return board;
+
+    }
+})
+export const unFavorite = mutation({
+    args: { id: v.id("boards") },
+    handler: async (ctx, args) => {
+
+        const identity = await ctx.auth.getUserIdentity()
+        if (!identity) {
+            throw new Error("Unauthorised")
+        }
+        // get : Fetch a single document from the database by its values.GenericId .
+
+        const board = await ctx.db.get(args.id);
+
+        if (!board) {
+            throw new Error("Board not found")
+        }
+
+        const userId = identity.subject
+
+        const existingFavorites = await ctx.db.query("userFavorites").
+            withIndex("by_user_board", (q) =>
+                q
+                    .eq("userId", userId)
+                    .eq("boardId", board._id)
+                    // TODO: check if orgId is needed
+            ).unique()
+
+        if (!existingFavorites) {
+            throw new Error("Board doesn't exist in your favorited boards")
+        }
+
+        // If the board is favorited , then unfavorite it
+        await ctx.db.delete(existingFavorites._id)
+
+        return board;
+
+    }
 })
